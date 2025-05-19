@@ -53,10 +53,10 @@ app.get('/api/data', async (req, res) => {
   // const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userid]);
   const data = { userid, message: 'Hello from the API!' };
   if (output === 'json') {
-    return res.json(data);
+    res.json(data);
   } else {
     // Render a simple HTML page
-    return res.send(`<html><body><h1>Hello, user ${userid}!</h1><p>This is the web UI.</p></body></html>`);
+    res.send(`<html><body><h1>Hello, user ${userid}!</h1><p>This is the web UI.</p></body></html>`);
   }
 });
 
