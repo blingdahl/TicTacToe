@@ -29,8 +29,8 @@ const pool = mysql.createPool({
 // Middleware to parse JSON
 app.use(express.json());
 
-// Serve static files (client build)
-app.use(express.static(path.join(__dirname, '../../client/build')));
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../../public')));
 
 // Middleware to ensure userid in URL
 app.use((req, res, next) => {
@@ -45,24 +45,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Example API endpoint
-app.get('/api/data', async (req, res) => {
-  const output = req.query.output;
+// API: Get current user
+app.get('/api/user/current', (req, res) => {
   const userid = (req as any).userid;
-  // Example: fetch user data from MySQL
-  // const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userid]);
-  const data = { userid, message: 'Hello from the API!' };
-  if (output === 'json') {
-    res.json(data);
-  } else {
-    // Render a simple HTML page
-    res.send(`<html><body><h1>Hello, user ${userid}!</h1><p>This is the web UI.</p></body></html>`);
-  }
+  res.json({ userid });
 });
 
-// Fallback: serve client app (for React Router)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../client/build/index.html'));
+// API: Find next game
+app.post('/api/game/find', async (req, res) => {
+  const { userid } = req.body;
+  // TODO: Implement game matchmaking logic
+  res.json({ gameId: 'dummy-game-id', message: 'Game found or created.' });
+});
+
+// API: Get the most recent move.
+app.get('/api/game/get', async (req, res) => {
+  const { userid, gameId } = req.query;
+  // TODO: Implement check logic
+  res.json({ moved: false });
+});
+
+// API: Make a move
+app.post('/api/game/move', async (req, res) => {
+  const { userid, gameId, move } = req.body;
+  // TODO: Implement move logic
+  res.json({ success: true });
+});
+
+// Root: Serve web UI
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/index.html'));
 });
 
 app.listen(PORT, () => {
