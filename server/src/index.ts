@@ -48,7 +48,6 @@ app.post('/api/game/find', async (req, res) => {
 // API: Get the most recent game state.
 app.get('/api/game/get', async (req, res) => {
   try {
-    console.log(req);
     const { userid, gameId } = req.query;
     // TODO: Implement check logic
     res.json({ moved: false });
@@ -61,8 +60,8 @@ app.get('/api/game/get', async (req, res) => {
 // API: Make a move
 app.post('/api/game/move', async (req, res) => {
   try {
-    console.log(req);
-    const { userid, gameId, move } = req.body;
+    const { userId, gameId, move } = req.body;
+    console.log(userId, gameId, move);
     // TODO: Implement move logic
     res.json({ success: true });
   } catch (err) {
