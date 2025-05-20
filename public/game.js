@@ -35,5 +35,13 @@ export class Game {
       throw new Error('Error finding game: ' + error.message);
     }
   }
+
+  async makeMove(row, column) {
+    if (this.state[row][column] !== '') {
+      return;
+    }
+    let newState = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
+    this.state = newState;
+  }
 }
 

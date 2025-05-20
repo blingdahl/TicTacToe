@@ -18,8 +18,11 @@ import { Game } from './game.js';
 import { gameBoard } from './gameboard.js';
 
 export async function init() {
-  // Placeholder: initialize application state here
   const game = await Game.findGame();
+  gameBoard.addCallback(async (row, column) => {
+   await game.makeMove(row, column);
+   gameBoard.render(game);
+  });
   gameBoard.render(game);
   console.log('App initialized');
 } 

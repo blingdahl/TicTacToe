@@ -8,7 +8,18 @@ class GameBoard {
     return GameBoard.instance;
   }
 
+  addCallback(callback) {
+    if (typeof callback !== 'function') {
+      throw new Error('Callback must be a function');
+    }
+    this.callback = callback;
+  }
+
   render(game) {
+    if (!this.callback) {
+      throw new Error('Callback not set');
+    }
+
     let root = document.getElementById('root');
     let board = document.getElementById('board');
     if (!board) {
@@ -30,6 +41,8 @@ class GameBoard {
         if (cellValue === 'X') cellValue = '×';
         if (cellValue === 'O') cellValue = '○';
         td.textContent = '' + cellValue;
+        td.style.cursor = 'pointer';
+        td.onclick = () => this.callback(i, j);
         tr.appendChild(td);
       }
       table.appendChild(tr);
