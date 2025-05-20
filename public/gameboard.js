@@ -37,7 +37,8 @@ class GameBoard {
         td.style.verticalAlign = 'middle';
         td.style.overflow = 'hidden';
         td.style.fontSize = 'calc(min(33vw, 33vh) * 0.7)';
-        td.textContent = game.state[i][j];
+        console.log(game.state);
+        td.textContent = '' + game.state[i][j];
         tr.appendChild(td);
       }
       table.appendChild(tr);
