@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid Game</title>
+  <title>TicTacToe</title>
 </head>
 <body>
   <div id="root"></div>
-  <script src="/game.js"></script>
+  <script type="module">
+    import { init } from './init.js';
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html> 
