@@ -7,6 +7,7 @@ import path from 'path';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
+import type { Request, Response, NextFunction } from 'express';
 
 // Load environment variables
 dotenv.config();
@@ -32,49 +33,53 @@ app.use(express.json());
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../../public')));
 
-// Middleware to ensure userid in URL
-app.use((req, res, next) => {
-  const url = new URL(req.protocol + '://' + req.get('host') + req.originalUrl);
-  let userid = url.searchParams.get('userid');
-  if (!userid || !uuidValidate(userid)) {
-    userid = uuidv4();
-    url.searchParams.set('userid', userid);
-    return res.redirect(url.pathname + '?' + url.searchParams.toString());
-  }
-  (req as any).userid = userid;
-  next();
-});
-
-// API: Get current user
-app.get('/api/user/current', (req, res) => {
-  const userid = (req as any).userid;
-  res.json({ userid });
-});
-
 // API: Find next game
 app.post('/api/game/find', async (req, res) => {
-  const { userid } = req.body;
-  // TODO: Implement game matchmaking logic
-  res.json({ gameId: 'dummy-game-id', message: 'Game found or created.' });
+  try {
+    const { userid } = req.body;
+    // TODO: Implement game matchmaking logic
+    res.json({ gameId: 'dummy-game-id', message: 'Game found or created.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// API: Get the most recent move.
+// API: Get the most recent game state.
 app.get('/api/game/get', async (req, res) => {
-  const { userid, gameId } = req.query;
-  // TODO: Implement check logic
-  res.json({ moved: false });
+  try {
+    console.log(req);
+    const { userid, gameId } = req.query;
+    // TODO: Implement check logic
+    res.json({ moved: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // API: Make a move
 app.post('/api/game/move', async (req, res) => {
-  const { userid, gameId, move } = req.body;
-  // TODO: Implement move logic
-  res.json({ success: true });
+  try {
+    console.log(req);
+    const { userid, gameId, move } = req.body;
+    // TODO: Implement move logic
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Root: Serve web UI
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/index.html'));
+});
+
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {
