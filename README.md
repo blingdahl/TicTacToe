@@ -1,43 +1,99 @@
-# TypeScript Web Client/Server with MySQL Backend
+# MySQL and Server Setup Instructions
 
-## Features
-- Full-stack TypeScript (Node.js backend, React frontend)
-- MySQL database for persistent storage
-- Server serves both:
-  - Web UI (HTML/JS/CSS)
-  - JSON API (based on `output=json` parameter)
-- On first visit, assigns a `userid` (UUID) as a URL parameter for user identification
-- Returning users keep their `userid` in the URL for persistent sessions
+## 1. Install MySQL
 
-## Project Structure
-- `server/` — Node.js/Express TypeScript backend
-- `client/` — React TypeScript frontend
-- `db/` — MySQL schema and seed scripts
+### On macOS (using Homebrew)
+```sh
+brew update
+brew install mysql
+```
 
-## Setup
-1. **Clone the repo**
-2. **Install dependencies**
-   - Backend: `cd server && npm install`
-   - Frontend: `cd client && npm install`
-3. **Configure MySQL**
-   - Create a database and user
-   - Update `server/.env` with DB credentials
-   - Run schema: `mysql -u <user> -p < db/schema.sql`
-4. **Run the app**
-   - Start backend: `cd server && npm run dev`
-   - Start frontend: `cd client && npm start`
-   - Visit: `http://localhost:3000` (UI) or `http://localhost:3000/?output=json` (JSON)
+### On Ubuntu/Debian
+```sh
+sudo apt update
+sudo apt install mysql-server
+```
 
-## Usage
-- On first visit, the app redirects to `/?userid=<uuid>`
-- All subsequent requests use this `userid` for user-specific data
-- Add `output=json` to any URL for JSON API responses
-
-## Development
-- TypeScript everywhere
-- Hot reload for both client and server
-- Easily extendable for new features
+### On Windows
+- Download the MySQL Installer from: https://dev.mysql.com/downloads/installer/
+- Run the installer and follow the prompts.
 
 ---
 
-See `server/README.md` and `client/README.md` for more details. 
+## 2. Start the MySQL Server
+
+### macOS (Homebrew)
+```sh
+brew services start mysql
+```
+
+### Ubuntu/Debian
+```sh
+sudo service mysql start
+```
+
+### Windows
+- MySQL should start automatically after installation. If not, start it from the Services app (`services.msc`).
+
+---
+
+## 3. Secure MySQL (Optional but Recommended)
+```sh
+mysql_secure_installation
+```
+Follow the prompts to set a root password and secure your installation.
+
+---
+
+## 4. Create a Database and User
+
+```sh
+mysql -u root -p
+```
+Then, in the MySQL prompt:
+```sql
+CREATE DATABASE tictactoe;
+CREATE USER 'tictactoe_user'@'localhost' IDENTIFIED BY 'yourpassword';
+GRANT ALL PRIVILEGES ON tictactoe.* TO 'tictactoe_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+---
+
+## 5. Initialize MySQL with the Schema
+
+Assuming your schema is in `db/schema.sql`:
+```sh
+mysql -u tictactoe_user -p tictactoe < db/schema.sql
+```
+
+---
+
+## 6. Configure Your App
+
+Update your `.env` or config file with:
+```
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=tictactoe_user
+MYSQL_PASSWORD=yourpassword
+MYSQL_DATABASE=tictactoe
+```
+
+---
+
+## 7. Start Your Node.js Server
+
+```sh
+cd server
+npm run dev
+```
+**or**
+```sh
+npm start
+```
+
+---
+
+You should now have MySQL running, your schema loaded, and your server ready to connect!
