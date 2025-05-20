@@ -17,9 +17,9 @@ loadScriptIfNeeded('/gameboard.js');
 import { Game } from './game.js';
 import { gameBoard } from './gameboard.js';
 
-export function init() {
+export async function init() {
   // Placeholder: initialize application state here
-  const game = Game.findGame();
+  const game = await Game.findGame();
   gameBoard.render(game);
   console.log('App initialized');
 } 
