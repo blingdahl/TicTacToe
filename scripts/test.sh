@@ -9,12 +9,13 @@ GAME1=$(curl -s -X POST http://localhost:3000/api/game/find -H 'Content-Type: ap
 GAMEID=$(echo $GAME1 | jq -r '.game.gameId')
 echo "User1 ($USER1) joined/created game: $GAMEID"
 
+# User1 makes a move (0,0)
+curl -s -X POST http://localhost:3000/api/game/move -H 'Content-Type: application/json' -d '{"userId": "'$USER1'", "gameId": "'$GAMEID'", "row": 0, "column": 0}'
+
 # User2 joins the same game
 GAME2=$(curl -s -X POST http://localhost:3000/api/game/find -H 'Content-Type: application/json' -d '{"userId": "'$USER2'"}')
 echo "User2 ($USER2) joined game: $GAMEID"
 
-# User1 makes a move (0,0)
-curl -s -X POST http://localhost:3000/api/game/move -H 'Content-Type: application/json' -d '{"userId": "'$USER1'", "gameId": "'$GAMEID'", "row": 0, "column": 0}'
 
 # User2 makes a move (1,1)
 curl -s -X POST http://localhost:3000/api/game/move -H 'Content-Type: application/json' -d '{"userId": "'$USER2'", "gameId": "'$GAMEID'", "row": 1, "column": 1}'

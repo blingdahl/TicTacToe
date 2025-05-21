@@ -97,3 +97,19 @@ npm start
 ---
 
 You should now have MySQL running, your schema loaded, and your server ready to connect!
+
+## Running Tests
+
+### jest tests
+
+```
+cd server
+npm test
+```
+
+### Integration tests
+
+```
+cd scripts
+test.sh
+```
