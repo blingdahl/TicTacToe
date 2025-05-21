@@ -17,11 +17,11 @@ class GameBoard {
     this.callback = callback;
   }
 
-  render(game) {
-    if (!this.callback) {
-      throw new Error('Callback not set');
-    }
+  static playerSymbol(player) {
+    return player === PLAYER_1 ? '×' : '○';
+  }
 
+  render(game) {
     let root = document.getElementById('root');
     let board = document.getElementById('board');
     if (!board) {
@@ -35,16 +35,33 @@ class GameBoard {
     // Create table
     const table = document.createElement('table');
 
+    // Floating player symbol indicator
+    let indicator = document.getElementById('player-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'player-indicator';
+      document.body.appendChild(indicator);
+    }
+    let playerSymbol = GameBoard.playerSymbol(game.yourPlayer);
+    indicator.textContent = `You are ${playerSymbol}`;
+
+    if (!game.isPlayerTurn) {
+      indicator.textContent += ' (waiting for opponent)';
+    }
+    
     for (let i = 0; i < 3; i++) {
       const tr = document.createElement('tr');
       for (let j = 0; j < 3; j++) {
         const td = document.createElement('td');
         let cellValue = game.state[i][j];
-        if (cellValue === PLAYER_1) cellValue = '×';
-        if (cellValue === PLAYER_2) cellValue = '○';
+        if (cellValue !== '') {
+          cellValue = GameBoard.playerSymbol(cellValue);
+        }
         td.textContent = '' + cellValue;
-        td.style.cursor = 'pointer';
-        td.onclick = () => this.callback(i, j);
+        if (game.isPlayerTurn) {
+          td.style.cursor = 'pointer';
+          td.onclick = () => this.callback(i, j);
+        }
         tr.appendChild(td);
       }
       table.appendChild(tr);

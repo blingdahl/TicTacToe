@@ -20,9 +20,20 @@ const gameScenario =  [
 const useGameScenario = false;
 
 export class Game {
-  constructor(gameId, state) {
+  constructor(gameId, state, yourPlayer, isPlayerTurn) {
     this.gameId = gameId;
     this.state = state;
+    this.yourPlayer = yourPlayer;
+    this.isPlayerTurn = isPlayerTurn;
+  }
+
+  static fromJSON(jsonGame) {
+    return new Game(jsonGame.gameId, jsonGame.state, jsonGame.yourPlayer, jsonGame.isPlayerTurn);
+  }
+
+  static async load(gameId) {
+    let {game} = await fetchJSON('/api/game/get', { userId: userId, gameId: gameId });
+    return Game.fromJSON(game);
   }
 
   static async findGame() {
@@ -35,7 +46,7 @@ export class Game {
       if (!game) {
         throw new Error('No games found');
       }
-      return new Game(game.gameId, game.state);
+      return Game.fromJSON(game);
     } catch (error) {
       throw new Error('Error finding game: ' + error.message);
     }
@@ -48,5 +59,7 @@ export class Game {
     let {game} = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
     this.state = game.state;
   }
+
+  asymc 
 }
 
