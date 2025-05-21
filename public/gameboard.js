@@ -45,7 +45,19 @@ class GameBoard {
     let playerSymbol = GameBoard.playerSymbol(game.yourPlayer);
     indicator.textContent = `You are ${playerSymbol}`;
 
-    if (!game.isPlayerTurn) {
+    if (game.winner) {
+      if (game.winner === 'draw') {
+        indicator.textContent = 'Draw';
+      } else {
+        if (game.winner === game.yourPlayer) {
+          indicator.textContent = 'You win! ' + indicator.textContent;
+        } else if (game.winner === 'draw') {
+          indicator.textContent = 'Draw! ' + indicator.textContent;
+        } else {
+          indicator.textContent = 'You lose! ' + indicator.textContent;
+        }
+      }
+    } else if (!game.isPlayerTurn) {
       indicator.textContent += ' (waiting for opponent)';
     }
     

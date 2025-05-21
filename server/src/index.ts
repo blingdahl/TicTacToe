@@ -62,7 +62,8 @@ function gameRowToJson(gameRow: any, userId: string) {
     turn: gameRow.turn,
     isPlayerInGame: (userId === gameRow.player1 || userId === gameRow.player2),
     isPlayerTurn: (gameRow.turn === PLAYER_1 && userId === gameRow.player1) || (gameRow.turn === PLAYER_2 && userId === gameRow.player2),
-    yourPlayer: (userId === gameRow.player1) ? PLAYER_1 : PLAYER_2
+    yourPlayer: (userId === gameRow.player1) ? PLAYER_1 : PLAYER_2,
+    winner: gameRow.winner
   };
 }
 
@@ -132,6 +133,36 @@ app.post('/api/game/get', async (req, res) => {
   }
 });
 
+function winnerForSeries(series: any[]) {
+  if (series.every((cell: any) => cell === PLAYER_1)) {
+    return PLAYER_1;
+  }
+  if (series.every((cell: any) => cell === PLAYER_2)) {
+    return PLAYER_2;
+  }
+}
+
+function getWinner(state: any) {
+  let serieses = [];
+  for (let i = 0; i < 3; i++) {
+    serieses.push(state[i]);
+    serieses.push(state.map((row: any) => row[i]));
+  }
+  serieses.push([state[0][0], state[1][1], state[2][2]]);
+  serieses.push([state[0][2], state[1][1], state[2][0]]);
+  for (const series of serieses) {
+    const winner = winnerForSeries(series);
+    if (winner) {
+      return winner;
+    }
+  }
+  if (state.every((row: any) => row.every((cell: any) => cell !== ''))) {
+    return 'draw';
+  }
+  return null;
+}
+
+
 // API: Make a move
 app.post('/api/game/move', async (req, res) => {
   try {
@@ -149,6 +180,10 @@ app.post('/api/game/move', async (req, res) => {
     game.state[row][column] = game.turn;
     game.turn = game.turn === PLAYER_1 ? PLAYER_2 : PLAYER_1;
     await pool.query('UPDATE Games SET state = ?, turn = ? WHERE id = ?', [serializeGameState(game.state), game.turn, gameId]);
+    let winner = getWinner(game.state);
+    if (winner) {
+      await pool.query('UPDATE Games SET winner = ? WHERE id = ?', [winner, gameId]);
+    }
     game = await getGameJson(gameId, userId);
     res.json({ game });
   } catch (err) {

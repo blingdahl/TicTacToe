@@ -20,15 +20,16 @@ const gameScenario =  [
 const useGameScenario = false;
 
 export class Game {
-  constructor(gameId, state, yourPlayer, isPlayerTurn) {
+  constructor(gameId, state, yourPlayer, isPlayerTurn, winner) {
     this.gameId = gameId;
     this.state = state;
     this.yourPlayer = yourPlayer;
     this.isPlayerTurn = isPlayerTurn;
+    this.winner = winner;
   }
 
   static fromJSON(jsonGame) {
-    return new Game(jsonGame.gameId, jsonGame.state, jsonGame.yourPlayer, jsonGame.isPlayerTurn);
+    return new Game(jsonGame.gameId, jsonGame.state, jsonGame.yourPlayer, jsonGame.isPlayerTurn, jsonGame.winner);
   }
 
   static async load(gameId) {

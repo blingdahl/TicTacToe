@@ -30,7 +30,7 @@ export async function init() {
    await game.makeMove(row, column);
    window.location.reload();
   });
-  if (!game.isPlayerTurn) {
+  if (!game.isPlayerTurn && !game.winner) {
     setTimeout(() => {
       window.location.reload();
     }, 5000);
