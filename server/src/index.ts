@@ -8,12 +8,19 @@ import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
 import type { Request, Response, NextFunction } from 'express';
+import {
+ Game
+} from './game';
+import {
+  GameDb
+} from './gamedb';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 
 // MySQL connection pool
 const pool = mysql.createPool({
@@ -26,6 +33,8 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
+
+const gameDb = GameDb.getInstance(pool);
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -43,80 +52,31 @@ app.use((req, res, next) => {
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../../public')));
 
-function serializeGameState(state: any) {
-  return JSON.stringify(state);
-}
-
-function deserializeGameState(state: any) {
-  return JSON.parse(state);
-}
-
-function gameRowToJson(gameRow: any, userId: string) {
-  return {
-    gameId: gameRow.id,
-    player1: gameRow.player1,
-    player2: gameRow.player2,
-    state: deserializeGameState(gameRow.state),
-    createdAt: gameRow.created_at,
-    updatedAt: gameRow.updated_at,
-    turn: gameRow.turn,
-    isPlayerInGame: (userId === gameRow.player1 || userId === gameRow.player2),
-    isPlayerTurn: (gameRow.turn === PLAYER_1 && userId === gameRow.player1) || (gameRow.turn === PLAYER_2 && userId === gameRow.player2),
-    yourPlayer: (userId === gameRow.player1) ? PLAYER_1 : PLAYER_2,
-    winner: gameRow.winner
-  };
-}
-
-async function getGameJson(gameId: string, playerId: string) {
-  const gameRow = await getGameRow(gameId);
-  return gameRowToJson(gameRow, playerId);
-}
-
-const DEFAULT_GAME_STATE = [
-  ['', '', ''],
-  ['', '', ''],
-  ['', '', '']
-];
-
-const PLAYER_1 = 'player1';
-const PLAYER_2 = 'player2';
-
 // API: Find next game
 app.post('/api/game/find', async (req, res) => {
   try {
     const { userId } = req.body;
-    const [activeGameRowsForUser] = await pool.query<any[]>('SELECT * FROM Games WHERE (player1 = ? OR player2 = ?) AND winner IS NULL', [userId, userId]);
+    const activeGameRowsForUser = await gameDb.findActiveGamesForUser(userId);
     if (activeGameRowsForUser.length > 0) {
-      res.json({ game: gameRowToJson(activeGameRowsForUser[0], userId) });
+      res.json({ game: Game.fromRow(activeGameRowsForUser[0]).getJson(userId) });
       return;
     }
 
-    const [availableGameRows] = await pool.query<any[]>('SELECT * FROM Games WHERE player2 IS NULL AND player1 != ? AND turn = "player2"', [userId]);
+    const availableGameRows = await gameDb.findAvailableGameToJoin(userId);
     if (availableGameRows.length > 0) {
-      await pool.query('UPDATE Games SET player2 = ? WHERE id = ?', [userId, availableGameRows[0].id]);
-      const [rows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [availableGameRows[0].id]);
-      const game = rows[0];
-      res.json({ game: gameRowToJson(game, userId) });
+      await gameDb.joinGame(userId, availableGameRows[0].id);
+      const gameRow = await gameDb.getGameById(availableGameRows[0].id);
+      res.json({ game: Game.fromRow(gameRow).getJson(userId) });
     } else {
-      const [result] = await pool.query('INSERT INTO Games (player1, state, turn) VALUES (?, ?, ?)', [userId, serializeGameState(DEFAULT_GAME_STATE), PLAYER_1]);
-      const insertId = (result as any).insertId;
-      const [rows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [insertId]);
-      const game = rows[0];
-      res.json({ game: gameRowToJson(game, userId) });
+      const insertId = await gameDb.createGame(userId, Game.serializeGameState(Game.DEFAULT_GAME_STATE), Game.PLAYER_1);
+      const game = await gameDb.getGameById(insertId);
+      res.json({ game: Game.fromRow(activeGameRowsForUser[0]).getJson(userId) });
     }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-async function getGameRow(gameId: string) {
-  let [gameRows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [gameId]);
-  if (gameRows.length === 0) {
-    throw new Error('Game not found');
-  }
-  return gameRows[0];
-}
 
 // API: Get the most recent game state.
 app.post('/api/game/get', async (req, res) => {
@@ -125,67 +85,38 @@ app.post('/api/game/get', async (req, res) => {
     if (!userId || !gameId) {
       return res.status(400).json({ error: 'Missing userid or gameId' });
     }
-    let game = await getGameJson(String(gameId), String(userId));
-    res.json({ game });
+    const gameRow = await gameDb.getGameRow(String(gameId));
+    res.json({ game: Game.fromRow(gameRow).getJson(userId) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-function winnerForSeries(series: any[]) {
-  if (series.every((cell: any) => cell === PLAYER_1)) {
-    return PLAYER_1;
-  }
-  if (series.every((cell: any) => cell === PLAYER_2)) {
-    return PLAYER_2;
-  }
-}
-
-function getWinner(state: any) {
-  let serieses = [];
-  for (let i = 0; i < 3; i++) {
-    serieses.push(state[i]);
-    serieses.push(state.map((row: any) => row[i]));
-  }
-  serieses.push([state[0][0], state[1][1], state[2][2]]);
-  serieses.push([state[0][2], state[1][1], state[2][0]]);
-  for (const series of serieses) {
-    const winner = winnerForSeries(series);
-    if (winner) {
-      return winner;
-    }
-  }
-  if (state.every((row: any) => row.every((cell: any) => cell !== ''))) {
-    return 'draw';
-  }
-  return null;
-}
-
-
 // API: Make a move
 app.post('/api/game/move', async (req, res) => {
   try {
     const { userId, gameId, row, column } = req.body;
-    let game = await getGameJson(gameId, userId);
-    if (!game.isPlayerInGame) {
+    let gameRow = await gameDb.getGameRow(String(gameId));
+    let game = Game.fromRow(gameRow);
+    if (!game.isPlayerInGame(userId)) {
       throw new Error('Game not found');
     }
-    if (!game.isPlayerTurn) {
+    if (!game.isPlayerTurn(userId)) {
       throw new Error('Not your turn');
     }
     if (game.state[row][column] !== '') {
       throw new Error('Cell already occupied');
     }
     game.state[row][column] = game.turn;
-    game.turn = game.turn === PLAYER_1 ? PLAYER_2 : PLAYER_1;
-    await pool.query('UPDATE Games SET state = ?, turn = ? WHERE id = ?', [serializeGameState(game.state), game.turn, gameId]);
-    let winner = getWinner(game.state);
+    game.turn = game.turn === Game.PLAYER_1 ? Game.PLAYER_2 : Game.PLAYER_1;
+    await gameDb.updateGameState(gameId, Game.serializeGameState(game.state), game.turn);
+    let winner = game.getWinner();
     if (winner) {
-      await pool.query('UPDATE Games SET winner = ? WHERE id = ?', [winner, gameId]);
+      await gameDb.setGameWinner(gameId, winner);
     }
-    game = await getGameJson(gameId, userId);
-    res.json({ game });
+    gameRow = await gameDb.getGameRow(gameId);
+    res.json({ game: Game.fromRow(gameRow).getJson(userId) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
