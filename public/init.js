@@ -1,3 +1,4 @@
+const REFRESH_INTERVAL = 1000;
 
 export function loadScriptIfNeeded(src) {
   // Check if script is already loaded
@@ -33,7 +34,7 @@ export async function init() {
   if (!game.isPlayerTurn && !game.winner) {
     setTimeout(() => {
       window.location.reload();
-    }, 5000);
+    }, REFRESH_INTERVAL);
   }
   gameBoard.render(game);
   console.log('App initialized');
