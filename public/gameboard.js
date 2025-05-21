@@ -1,3 +1,5 @@
+import { PLAYER_1, PLAYER_2 } from './game.js';
+
 class GameBoard {
   static instance = null;
 
@@ -38,8 +40,8 @@ class GameBoard {
       for (let j = 0; j < 3; j++) {
         const td = document.createElement('td');
         let cellValue = game.state[i][j];
-        if (cellValue === 'X') cellValue = '×';
-        if (cellValue === 'O') cellValue = '○';
+        if (cellValue === PLAYER_1) cellValue = '×';
+        if (cellValue === PLAYER_2) cellValue = '○';
         td.textContent = '' + cellValue;
         td.style.cursor = 'pointer';
         td.onclick = () => this.callback(i, j);

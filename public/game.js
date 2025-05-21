@@ -7,14 +7,18 @@ import { fetchJSON } from './async.js';
 import { getOrCreateUserID } from './user.js';
 import { generateUUID } from './uuid.js';
 
+export const PLAYER_1 = 'player1';
+export const PLAYER_2 = 'player2';
+
 const userId = getOrCreateUserID();
 
 const gameScenario =  [
-      ['X', 'O', 'X'],
-      ['', 'X', 'O'],
-      ['X', 'O', 'X']
+      [PLAYER_1, PLAYER_2, PLAYER_1],
+      ['', PLAYER_1, PLAYER_2],
+      [PLAYER_2, PLAYER_1, PLAYER_2]
     ]
-const useGameScenario = true;
+const useGameScenario = false;
+
 export class Game {
   constructor(gameId, state) {
     this.gameId = gameId;
@@ -23,14 +27,15 @@ export class Game {
 
   static async findGame() {
     if (useGameScenario) {
-      return new Game(generateUUID(), gameScenario);
+      return new Game(1, gameScenario);
     }
     try {
       const data = await fetchJSON('/api/game/find', { userId: userId });
-      if (data.gameId) {
-        return new Game(data.gameId, data.state);
+      let game = data.game;
+      if (!game) {
+        throw new Error('No games found');
       }
-      throw new Error('No game found');
+      return new Game(game.gameId, game.state);
     } catch (error) {
       throw new Error('Error finding game: ' + error.message);
     }
@@ -40,8 +45,8 @@ export class Game {
     if (this.state[row][column] !== '') {
       return;
     }
-    let newState = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
-    this.state = newState;
+    let newGame = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
+    this.state = newGame.state;
   }
 }
 

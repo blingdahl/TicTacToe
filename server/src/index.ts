@@ -30,20 +30,96 @@ const pool = mysql.createPool({
 // Middleware to parse JSON
 app.use(express.json());
 
+// Middleware to ensure userId is set in POST requests
+app.use((req, res, next) => {
+  if (req.method === 'POST') {
+    if (!req.body || !req.body.userId) {
+      return res.status(400).json({ error: 'Missing userId in request body' });
+    }
+  }
+  next();
+});
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../../public')));
+
+function serializeGameState(state: any) {
+  return JSON.stringify(state);
+}
+
+function deserializeGameState(state: any) {
+  return JSON.parse(state);
+}
+
+function gameRowToJson(gameRow: any, userId: string) {
+  return {
+    gameId: gameRow.id,
+    player1: gameRow.player1,
+    player2: gameRow.player2,
+    state: deserializeGameState(gameRow.state),
+    createdAt: gameRow.created_at,
+    updatedAt: gameRow.updated_at,
+    turn: gameRow.turn,
+    isPlayerInGame: (userId === gameRow.player1 || userId === gameRow.player2),
+    isPlayerTurn: (gameRow.turn === PLAYER_1 && userId === gameRow.player1) || (gameRow.turn === PLAYER_2 && userId === gameRow.player2)
+  };
+}
+
+async function getGameJson(gameId: string, playerId: string) {
+  const gameRow = await getGameRow(gameId);
+  return gameRowToJson(gameRow, playerId);
+}
+
+const DEFAULT_GAME_STATE = [
+  ['', '', ''],
+  ['', '', ''],
+  ['', '', '']
+];
+
+const PLAYER_1 = 'player1';
+const PLAYER_2 = 'player2';
 
 // API: Find next game
 app.post('/api/game/find', async (req, res) => {
   try {
-    const { userid } = req.body;
-    // TODO: Implement game matchmaking logic
-    res.json({ gameId: 'dummy-game-id', message: 'Game found or created.' });
+    const { userId } = req.body;
+    const [activeGameRowsForUser] = await pool.query<any[]>('SELECT * FROM Games WHERE (player1 = ? OR player2 = ?) AND turn <> "Done"', [userId, userId]);
+    if (activeGameRowsForUser.length > 0) {
+      console.log('Found active game(s) for user', userId, activeGameRowsForUser);
+      res.json({ game: gameRowToJson(activeGameRowsForUser[0], userId) });
+      return;
+    }
+
+    const [availableGameRows] = await pool.query<any[]>('SELECT * FROM Games WHERE player2 IS NULL AND player1 != ? AND turn = "player2"', [userId]);
+    if (availableGameRows.length > 0) {
+      console.log('Found available game for user', userId, availableGameRows);
+      await pool.query('UPDATE Games SET player2 = ? WHERE id = ?', [userId, availableGameRows[0].id]);
+      const [rows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [availableGameRows[0].id]);
+      const game = rows[0];
+      console.log('Found available game for user', userId, game);
+      res.json({ game: gameRowToJson(game, userId) });
+    } else {
+      console.log('Found no game for user, creating new game for', userId);
+      const [result] = await pool.query('INSERT INTO Games (player1, state, turn) VALUES (?, ?, ?)', [userId, serializeGameState(DEFAULT_GAME_STATE), PLAYER_1]);
+      const insertId = (result as any).insertId;
+      const [rows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [insertId]);
+      const game = rows[0];
+      console.log('Created new game', userId, game);
+      res.json({ game: gameRowToJson(game, userId) });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+async function getGameRow(gameId: string) {
+  let [gameRows] = await pool.query<any[]>('SELECT * FROM Games WHERE id = ?', [gameId]);
+  if (gameRows.length === 0) {
+    throw new Error('Game not found');
+  }
+  return gameRows[0];
+}
 
 // API: Get the most recent game state.
 app.get('/api/game/get', async (req, res) => {
@@ -60,10 +136,23 @@ app.get('/api/game/get', async (req, res) => {
 // API: Make a move
 app.post('/api/game/move', async (req, res) => {
   try {
-    const { userId, gameId, move } = req.body;
-    console.log(userId, gameId, move);
-    // TODO: Implement move logic
-    res.json({ success: true });
+    const { userId, gameId, row, column } = req.body;
+    console.log(userId, gameId, row, column);
+    let game = await getGameJson(gameId, userId);
+    if (!game.isPlayerInGame) {
+      throw new Error('Game not found');
+    }
+    if (!game.isPlayerTurn) {
+      throw new Error('Not your turn');
+    }
+    if (game.state[row][column] !== '') {
+      throw new Error('Cell already occupied');
+    }
+    game.state[row][column] = game.turn;
+    game.turn = game.turn === PLAYER_1 ? PLAYER_2 : PLAYER_1;
+    await pool.query('UPDATE Games SET state = ?, turn = ? WHERE id = ?', [serializeGameState(game.state), game.turn, gameId]);
+    let ret = await getGameJson(gameId, userId);
+    res.json({ ret });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
