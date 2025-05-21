@@ -28,7 +28,6 @@ export class GameDb {
     if (gameRows.length === 0) {
       throw new Error('Game not found');
     }
-    console.log('getGameRow', gameRows[0]);
     return gameRows[0];
   }
 
