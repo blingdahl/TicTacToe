@@ -14,6 +14,9 @@ import {
 import {
   GameDb
 } from './gamedb';
+import {
+  GameController
+} from './gamecontroller';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +39,8 @@ const pool = mysql.createPool({
 
 const gameDb = GameDb.getInstance(pool);
 
+const gameController = new GameController(gameDb);
+
 // Middleware to parse JSON
 app.use(express.json());
 
@@ -52,26 +57,16 @@ app.use((req, res, next) => {
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../../public')));
 
+async function writeGame(gamePromise: Promise<Game>, userId: string, res: Response) {
+  let game = await gamePromise;
+  res.json({ game: game.getJson(userId) });
+}
+
 // API: Find next game
 app.post('/api/game/find', async (req, res) => {
   try {
     const { userId } = req.body;
-    const activeGameRowsForUser = await gameDb.findActiveGamesForUser(userId);
-    if (activeGameRowsForUser.length > 0) {
-      res.json({ game: Game.fromRow(activeGameRowsForUser[0]).getJson(userId) });
-      return;
-    }
-
-    const availableGameRows = await gameDb.findAvailableGameToJoin(userId);
-    if (availableGameRows.length > 0) {
-      await gameDb.joinGame(userId, availableGameRows[0].id);
-      const gameRow = await gameDb.getGameRow(availableGameRows[0].id);
-      res.json({ game: Game.fromRow(gameRow).getJson(userId) });
-    } else {
-      const insertId = await gameDb.createGame(userId, Game.serializeGameState(Game.DEFAULT_GAME_STATE), Game.PLAYER_1);
-      const gameRow = await gameDb.getGameRow(insertId);
-      res.json({ game: Game.fromRow(gameRow).getJson(userId) });
-    }
+    await writeGame(gameController.findGame(userId), userId, res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -82,16 +77,7 @@ app.post('/api/game/find', async (req, res) => {
 app.post('/api/game/get', async (req, res) => {
   try {
     const {userId, gameId} = req.body;
-    if (!userId || !gameId) {
-      return res.status(400).json({ error: 'Missing userid or gameId' });
-    }
-    let gameRow = await gameDb.getGameRow(String(gameId));
-    if (gameRow.player1 !== userId && gameRow.player2 === null) {
-      gameDb.joinGame(userId, String(gameId));
-      gameRow = await gameDb.getGameRow(String(gameId));
-      gameRow.player2 = userId;
-    }
-    res.json({ game: Game.fromRow(gameRow).getJson(userId) });
+    await writeGame(gameController.getGame(userId, gameId), userId, res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -102,26 +88,7 @@ app.post('/api/game/get', async (req, res) => {
 app.post('/api/game/move', async (req, res) => {
   try {
     const { userId, gameId, row, column } = req.body;
-    let gameRow = await gameDb.getGameRow(String(gameId));
-    let game = Game.fromRow(gameRow);
-    if (!game.isPlayerInGame(userId)) {
-      throw new Error('Game not found');
-    }
-    if (!game.isPlayerTurn(userId)) {
-      throw new Error('Not your turn');
-    }
-    if (game.state[row][column] !== '') {
-      throw new Error('Cell already occupied');
-    }
-    game.state[row][column] = game.turn;
-    game.turn = game.turn === Game.PLAYER_1 ? Game.PLAYER_2 : Game.PLAYER_1;
-    await gameDb.updateGameState(gameId, Game.serializeGameState(game.state), game.turn);
-    let winner = game.getWinner();
-    if (winner) {
-      await gameDb.setGameWinner(gameId, winner);
-    }
-    gameRow = await gameDb.getGameRow(gameId);
-    res.json({ game: Game.fromRow(gameRow).getJson(userId) });
+    await writeGame(gameController.makeMove(userId, gameId, row, column), userId, res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
