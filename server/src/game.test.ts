@@ -14,7 +14,7 @@ describe('Game', () => {
       ['', '', ''],
       ['', '', '']
     ]),
-    turn: 'player1',
+    turn: Game.PLAYER_1,
     winner: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -25,9 +25,9 @@ describe('Game', () => {
     expect(game.player1).toBe('user1');
     expect(game.player2).toBe('user2');
     expect(game.state).toEqual([
-      ['', '', ''],
-      ['', '', ''],
-      ['', '', '']
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY]
     ]);
     expect(Game.serializeGameState(game.state)).toBe(baseRow.state);
   });
@@ -47,9 +47,9 @@ describe('Game', () => {
 
   it('should not allow move if cell is occupied', () => {
     const row = { ...baseRow, state: JSON.stringify([
-      ['player1', '', ''],
-      ['', '', ''],
-      ['', '', '']
+      [Game.PLAYER_1, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY]
     ]) };
     const game = Game.fromRow(row);
     expect(() => game.makeMove(0, 0, 'user1')).toThrow('Cell already occupied');
@@ -57,39 +57,39 @@ describe('Game', () => {
 
   it('should detect a winner (row)', () => {
     const row = { ...baseRow, state: JSON.stringify([
-      ['player1', 'player1', 'player1'],
-      ['', '', ''],
-      ['', '', '']
+      [Game.PLAYER_1, Game.PLAYER_1, Game.PLAYER_1],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.EMPTY]
     ]) };
     const game = Game.fromRow(row);
-    expect(game.getWinner()).toBe('player1');
+    expect(game.getWinner()).toBe(Game.PLAYER_1);
   });
 
   it('should detect a winner (column)', () => {
     const row = { ...baseRow, state: JSON.stringify([
-      ['player2', '', ''],
-      ['player2', '', ''],
-      ['player2', '', '']
+      [Game.PLAYER_2, Game.EMPTY, Game.EMPTY],
+      [Game.PLAYER_2, Game.EMPTY, Game.EMPTY],
+      [Game.PLAYER_2, Game.EMPTY, Game.EMPTY]
     ]) };
     const game = Game.fromRow(row);
-    expect(game.getWinner()).toBe('player2');
+    expect(game.getWinner()).toBe(Game.PLAYER_2);
   });
 
   it('should detect a winner (diagonal)', () => {
     const row = { ...baseRow, state: JSON.stringify([
-      ['player1', '', ''],
-      ['', 'player1', ''],
-      ['', '', 'player1']
+      [Game.PLAYER_1, Game.EMPTY, Game.EMPTY],
+      [Game.EMPTY, Game.PLAYER_1, Game.EMPTY],
+      [Game.EMPTY, Game.EMPTY, Game.PLAYER_1]
     ]) };
     const game = Game.fromRow(row);
-    expect(game.getWinner()).toBe('player1');
+    expect(game.getWinner()).toBe(Game.PLAYER_1);
   });
 
   it('should detect a draw', () => {
     const row = { ...baseRow, state: JSON.stringify([
-      ['player1', 'player2', 'player1'],
-      ['player2', 'player1', 'player2'],
-      ['player2', 'player1', 'player2']
+      [Game.PLAYER_1, Game.PLAYER_2, Game.PLAYER_1],
+      [Game.PLAYER_2, Game.PLAYER_1, Game.PLAYER_2],
+      [Game.PLAYER_2, Game.PLAYER_1, Game.PLAYER_2]
     ]) };
     const game = Game.fromRow(row);
     expect(game.getWinner()).toBe('draw');

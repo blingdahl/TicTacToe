@@ -19,6 +19,7 @@ export class Game {
 
   static PLAYER_1 = 'player1';
   static PLAYER_2 = 'player2';
+  static EMPTY = '';
 
   id: number;
   player1: string;
@@ -90,7 +91,7 @@ export class Game {
 
   makeMove(row: number, col: number, userId: string) {
     if (!this.isPlayerInGame(userId)) {
-      throw new Error('Game not found');
+      throw new Error('Player not in game');
     }
     if (!this.isPlayerTurn(userId)) {
       throw new Error('Not your turn');
