@@ -1,4 +1,4 @@
-const REFRESH_INTERVAL = 1000;
+const REFRESH_INTERVAL = 10000;
 
 export function loadScriptIfNeeded(src) {
   // Check if script is already loaded

@@ -65,12 +65,12 @@ app.post('/api/game/find', async (req, res) => {
     const availableGameRows = await gameDb.findAvailableGameToJoin(userId);
     if (availableGameRows.length > 0) {
       await gameDb.joinGame(userId, availableGameRows[0].id);
-      const gameRow = await gameDb.getGameById(availableGameRows[0].id);
+      const gameRow = await gameDb.getGameRow(availableGameRows[0].id);
       res.json({ game: Game.fromRow(gameRow).getJson(userId) });
     } else {
       const insertId = await gameDb.createGame(userId, Game.serializeGameState(Game.DEFAULT_GAME_STATE), Game.PLAYER_1);
-      const game = await gameDb.getGameById(insertId);
-      res.json({ game: Game.fromRow(activeGameRowsForUser[0]).getJson(userId) });
+      const gameRow = await gameDb.getGameRow(insertId);
+      res.json({ game: Game.fromRow(gameRow).getJson(userId) });
     }
   } catch (err) {
     console.error(err);
@@ -85,7 +85,12 @@ app.post('/api/game/get', async (req, res) => {
     if (!userId || !gameId) {
       return res.status(400).json({ error: 'Missing userid or gameId' });
     }
-    const gameRow = await gameDb.getGameRow(String(gameId));
+    let gameRow = await gameDb.getGameRow(String(gameId));
+    if (gameRow.player1 !== userId && gameRow.player2 === null) {
+      gameDb.joinGame(userId, String(gameId));
+      gameRow = await gameDb.getGameRow(String(gameId));
+      gameRow.player2 = userId;
+    }
     res.json({ game: Game.fromRow(gameRow).getJson(userId) });
   } catch (err) {
     console.error(err);

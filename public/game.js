@@ -20,16 +20,18 @@ const gameScenario =  [
 const useGameScenario = false;
 
 export class Game {
-  constructor(gameId, state, yourPlayer, isPlayerTurn, winner) {
+  constructor(gameId, state, yourPlayer, isPlayerTurn, winner, player1, player2) {
     this.gameId = gameId;
     this.state = state;
     this.yourPlayer = yourPlayer;
     this.isPlayerTurn = isPlayerTurn;
     this.winner = winner;
+    this.player1 = player1;
+    this.player2 = player2;
   }
 
   static fromJSON(jsonGame) {
-    return new Game(jsonGame.gameId, jsonGame.state, jsonGame.yourPlayer, jsonGame.isPlayerTurn, jsonGame.winner);
+    return new Game(jsonGame.gameId, jsonGame.state, jsonGame.yourPlayer, jsonGame.isPlayerTurn, jsonGame.winner, jsonGame.player1, jsonGame.player2);
   }
 
   static async load(gameId) {
@@ -39,7 +41,7 @@ export class Game {
 
   static async findGame() {
     if (useGameScenario) {
-      return new Game(1, gameScenario);
+      return new Game(1, gameScenario, PLAYER_1, true, null, PLAYER_1, PLAYER_2);
     }
     try {
       const data = await fetchJSON('/api/game/find', { userId: userId });
@@ -60,7 +62,5 @@ export class Game {
     let {game} = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
     this.state = game.state;
   }
-
-  asymc 
 }
 
