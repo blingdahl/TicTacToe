@@ -70,7 +70,7 @@ class GameBoard {
           cellValue = GameBoard.playerSymbol(cellValue);
         }
         td.textContent = '' + cellValue;
-        if (game.isPlayerTurn) {
+        if (game.isPlayerTurn && !game.winner) {
           td.style.cursor = 'pointer';
           td.onclick = () => this.callback(i, j);
         }

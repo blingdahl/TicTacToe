@@ -85,7 +85,7 @@ const PLAYER_2 = 'player2';
 app.post('/api/game/find', async (req, res) => {
   try {
     const { userId } = req.body;
-    const [activeGameRowsForUser] = await pool.query<any[]>('SELECT * FROM Games WHERE (player1 = ? OR player2 = ?) AND turn <> "Done"', [userId, userId]);
+    const [activeGameRowsForUser] = await pool.query<any[]>('SELECT * FROM Games WHERE (player1 = ? OR player2 = ?) AND winner IS NULL', [userId, userId]);
     if (activeGameRowsForUser.length > 0) {
       res.json({ game: gameRowToJson(activeGameRowsForUser[0], userId) });
       return;
