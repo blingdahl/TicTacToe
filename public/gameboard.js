@@ -43,20 +43,30 @@ class GameBoard {
       document.body.appendChild(indicator);
     }
     let playerSymbol = GameBoard.playerSymbol(game.yourPlayer);
-    indicator.textContent = `You are ${playerSymbol}`;
+    indicator.innerHTML = `You are ${playerSymbol}`;
 
     if (game.winner) {
       if (game.winner === 'draw') {
-        indicator.textContent = 'Draw';
+        indicator.textContent = 'Draw!';
+      } else if (game.winner === game.yourPlayer) {
+        indicator.textContent = `You win! You are ${playerSymbol}`;
       } else {
-        if (game.winner === game.yourPlayer) {
-          indicator.textContent = 'You win! ' + indicator.textContent;
-        } else if (game.winner === 'draw') {
-          indicator.textContent = 'Draw! ' + indicator.textContent;
-        } else {
-          indicator.textContent = 'You lose! ' + indicator.textContent;
-        }
+        indicator.textContent = `You lose! You are ${playerSymbol}`;
       }
+      // Add new game link/button
+      const newGameBtn = document.createElement('a');
+      newGameBtn.href = window.location.pathname + '?userid=' + encodeURIComponent(game.yourPlayer === PLAYER_1 ? game.player1 : game.player2);
+      newGameBtn.textContent = 'Start a new game';
+      newGameBtn.className = 'new-game-link';
+      newGameBtn.onclick = (e) => {
+        e.preventDefault();
+        // Remove gameid from URL and reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete('gameid');
+        window.location.href = url.toString();
+      };
+      indicator.appendChild(document.createElement('br'));
+      indicator.appendChild(newGameBtn);
     } else if (!game.isPlayerTurn) {
       indicator.textContent += ' (waiting for opponent)';
     }
