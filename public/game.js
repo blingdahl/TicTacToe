@@ -45,8 +45,8 @@ export class Game {
     if (this.state[row][column] !== '') {
       return;
     }
-    let newGame = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
-    this.state = newGame.state;
+    let {game} = await fetchJSON('/api/game/move', { userId: userId, gameId: this.gameId, row: row, column: column });
+    this.state = game.state;
   }
 }
 

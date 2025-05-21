@@ -151,8 +151,8 @@ app.post('/api/game/move', async (req, res) => {
     game.state[row][column] = game.turn;
     game.turn = game.turn === PLAYER_1 ? PLAYER_2 : PLAYER_1;
     await pool.query('UPDATE Games SET state = ?, turn = ? WHERE id = ?', [serializeGameState(game.state), game.turn, gameId]);
-    let ret = await getGameJson(gameId, userId);
-    res.json({ ret });
+    game = await getGameJson(gameId, userId);
+    res.json({ game });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
